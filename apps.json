@@ -1,0 +1,56 @@
+[
+  {
+    "id": "projetos-autorais",
+    "name": "Projetos autorais",
+    "url": "https://limavirtual.online/",
+    "icon": "🚀",
+    "category": "Projetos",
+    "description": "Conheça as soluções digitais disponíveis",
+    "tags": [
+      "software",
+      "aplicativos",
+      "portfólio"
+    ],
+    "featured": true
+  },
+  {
+    "id": "meu-primeiro-laboratorio-de-matematica",
+    "name": "Meu Primeiro Laboratório de Matemática",
+    "url": "https://onsitelimavirtual.github.io/Meu-Primeiro-Laboratorio-de-Matematica/",
+    "icon": "🔗",
+    "category": "Educação",
+    "description": "Laboratório Virtual Inteligente de Matemática",
+    "tags": [
+      "aula",
+      "aprendizagem",
+      "educação"
+    ],
+    "featured": true
+  },
+  {
+    "id": "chat-com-matematica",
+    "name": "Chat com Matemática",
+    "url": "https://motoforce.github.io/Chat-com-Matematica/",
+    "icon": "🔗",
+    "category": "Educação",
+    "description": "Chat inteligente para aprendizagem de Matemática",
+    "tags": [
+      "Aula",
+      "educação",
+      "ensino"
+    ],
+    "featured": true
+  },
+  {
+    "id": "concursoia",
+    "name": "ConcursoIA",
+    "url": "https://motoforce.github.io/concursoIA2.1/",
+    "icon": "🔗",
+    "category": "Educação",
+    "description": "Estudos orientados para Concursos",
+    "tags": [
+      "Concurso"
+    ],
+    "featured": true
+  }
+]
