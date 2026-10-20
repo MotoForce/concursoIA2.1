@@ -1,0 +1,47 @@
+CONCURSORIA TECH — KIT PWA PARA ANDROID
+=========================================
+Identificação confirmada no GitHub em 20/10/2026:
+https://github.com/MotoForce/concursoIA2.1
+https://motoforce.github.io/concursoIA2.1/
+
+O arquivo index.html original já tem botão de instalação, mas há código que
+DESREGISTRA todos os service workers e APAGA caches durante a inicialização.
+Sem corrigir esse código, o modo offline PWA não funcionará corretamente.
+
+ARQUIVOS DO KIT
+- manifest.webmanifest
+- sw.js
+- icon-192.png
+- icon-512.png
+- icon-maskable-512.png
+- PREPARAR-INDEX.html (ferramenta offline para ajustar o index original)
+
+PASSO A PASSO NO CELULAR
+1. No GitHub, abra MotoForce/concursoIA2.1 e baixe o index.html ATUAL.
+   Sugestão: Code > index.html > Raw > salvar; ou Code > Download ZIP
+   e extraia index.html do arquivo zip.
+2. Extraia este kit PWA.
+3. Abra PREPARAR-INDEX.html no Chrome como arquivo local e escolha o
+   index.html do passo 1. Toque em 'Gerar index atualizado'.
+4. A ferramenta baixa um NOVO arquivo chamado index.html. Se o Android
+   usar index(1).html, renomeie-o para index.html antes de subir.
+5. No GitHub (branch main) envie esse NOVO index.html, mais
+   manifest.webmanifest, sw.js e os 3 ícones PNG à RAIZ do repositório.
+   NÃO envie PREPARAR-INDEX.html ao repositório (não é necessário).
+6. Confirme o commit e aguarde o GitHub Pages publicar.
+7. Chrome Android: abra https://motoforce.github.io/concursoIA2.1/
+   Menu ⋮ > Instalar app (ou botão Instalar do sistema, quando aparecer).
+8. Teste primeiro conectado, depois sem rede. Exercícios locais podem
+   funcionar offline; integrações remotas continuam precisando de Internet.
+9. Não limpe o armazenamento de site: pode excluir progresso local.
+
+QA / SEGURANÇA
+- O novo index.html é gerado a partir do arquivo ATUAL baixado do GitHub.
+- O transformador confere a identificação do projeto e o trecho antigo.
+- Mantém telas, login local, tokens e conteúdo do index original.
+- Remove SOMENTE o bloco que unregister() SWs e limpa todos os caches.
+- Cache do SW é isolado por nome; atualização network-first do index.
+- Requer HTTPS para instalar como PWA e para o service worker.
+- Este kit foi gerado, mas a instalação real no aparelho depende da publicação.
+- Não publique tokens pessoais e não compartilhe seus dados de acesso.
+- Copyright/autoria do aplicativo original permanecem inalterados.

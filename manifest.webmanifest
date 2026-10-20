@@ -1,0 +1,36 @@
+{
+  "id": "/concursoIA2.1/",
+  "name": "ConcursorIA Tech",
+  "short_name": "ConcursorIA",
+  "description": "Plataforma de preparação para concursos, com trilhas de estudo, aulas, questões e revisão.",
+  "lang": "pt-BR",
+  "start_url": "/concursoIA2.1/",
+  "scope": "/concursoIA2.1/",
+  "display": "standalone",
+  "background_color": "#07101f",
+  "theme_color": "#07152f",
+  "categories": [
+    "education",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

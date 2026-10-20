@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preparar index — ConcursorIA Tech PWA</title>
+<style>:root{font-family:system-ui,-apple-system,Arial,sans-serif;color-scheme:dark;background:#07101f;color:#eef6ff}body{margin:0;padding:24px 14px}.panel{max-width:670px;margin:15px auto;padding:25px;border:1px solid #345477;border-radius:22px;background:#0d1a31}h1{font-size:1.5rem}p{line-height:1.55;color:#cedcf2}.tip{background:#152a48;border-radius:10px;padding:12px}.action{display:block;max-width:100%;border:0;background:#42d5ff;color:#07101f;font-weight:800;border-radius:12px;padding:14px;margin:14px 0;font-size:1rem;cursor:pointer}input{max-width:100%;display:block;margin:16px 0}#status{white-space:pre-wrap;color:#a7f3d0}</style></head>
+<body><main class="panel"><h1>🎓 ConcursorIA Tech — Preparar PWA</h1>
+<p>Este utilitário altera somente a configuração de instalação do aplicativo original, sem editar questões, aulas, tokens ou dados de usuários.</p>
+<p class="tip">1. No GitHub, baixe o arquivo <strong>index.html</strong> atual do repositório <strong>MotoForce/concursoIA2.1</strong>.<br>2. Escolha esse arquivo abaixo.<br>3. Clique em <strong>Gerar index atualizado</strong>.<br>4. Envie o novo index.html e os cinco arquivos PWA à raiz do GitHub.</p>
+<label for="source">Escolher o index.html original</label><input id="source" type="file" accept=".html,text/html">
+<button class="action" id="patch">Gerar index atualizado</button><div id="status" role="status" aria-live="polite"></div>
+<p>Segurança: o HTML escolhido é processado exclusivamente no seu navegador. Nenhum arquivo é enviado a um servidor por este utilitário.</p></main>
+<script>
+(()=>{
+ const input=document.getElementById('source'),info=document.getElementById('status');
+ document.getElementById('patch').addEventListener('click',async()=>{
+   let original='';try{
+     if(!input.files||!input.files[0])throw Error('Selecione o index.html original.');
+     original=await input.files[0].text();
+     if(!original.includes('ConcursorIA Tech'))throw Error('O arquivo selecionado não parece ser do ConcursorIA Tech.');
+     if(original.includes('rel="manifest"') && original.includes('sw.js') && !original.includes('getRegistrations()'))throw Error('O arquivo parece ter sido preparado para PWA. Não aplique a transformação duas vezes.');
+     const marker='<script>\n(async function(){';
+     const start=original.indexOf(marker);
+     if(start<0)throw Error('Não encontrei o trecho de limpeza do cache da edição publicada. Não substitua o index sem verificar esta versão.');
+     const end=original.indexOf('<\/script>',start);
+     if(end<0)throw Error('Bloco de inicialização incompleto.');
+     const cleanup=original.slice(start,end+9);
+     if(!cleanup.includes('navigator.serviceWorker.getRegistrations()')||!cleanup.includes('await caches.delete(k)'))throw Error('O bloco detectado não é o esperado. Alteração cancelada por segurança.');
+     original=original.slice(0,start)+original.slice(end+9);
+     const inject=`\n<!-- ConcursorIA Tech PWA: preserva o aplicativo e seus dados locais -->\n<link rel="manifest" href="./manifest.webmanifest">\n<link rel="apple-touch-icon" href="./icon-192.png">\n<link rel="icon" type="image/png" href="./icon-192.png">\n<meta name="mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-title" content="ConcursorIA Tech">\n<script>\nif ('serviceWorker' in navigator && window.isSecureContext) {\n window.addEventListener('load',function(){\n  navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(err){console.warn('PWA:',err);});\n });\n}\n<\/script>\n`;
+     const headEnd=original.indexOf('</head>');
+     if(headEnd<0)throw Error('Documento HTML sem fechamento do cabeçalho.');
+     original=original.slice(0,headEnd)+inject+original.slice(headEnd);
+     const blob=new Blob([original],{type:'text/html;charset=utf-8'});const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='index.html';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),8000);
+     info.textContent='✓ index.html atualizado com sucesso. Envie ao GitHub junto dos 5 arquivos PWA. Sua versão original não foi alterada.';
+   }catch(err){info.textContent='✕ '+err.message;}
+ });
+})();
+</script></body></html>
