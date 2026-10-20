@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-lv-cloud-app="concursoria">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
@@ -18,7 +18,20 @@
 </style>
   <title>ConcursorIA Tech</title>
 
-
+<script>
+(async function(){
+  try{
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) await r.unregister();
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      for (const k of keys) await caches.delete(k);
+    }
+  }catch(e){}
+})();
+</script>
 
 
 <style>
@@ -833,20 +846,12 @@ body.teacher-speaking #virtualTeacherBtn{box-shadow:0 0 0 2px rgba(65,218,255,.1
 @media(max-width:440px){.teacher-controls{grid-template-columns:1fr 1fr}.teacher-controls #teacherPlay{grid-column:1/-1}}
 </style>
 
-
-<!-- ConcursorIA Tech PWA: preserva o aplicativo e seus dados locais -->
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
-<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="ConcursorIA Tech">
 <script>
-if ('serviceWorker' in navigator && window.isSecureContext) {
- window.addEventListener('load',function(){
-  navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(err){console.warn('PWA:',err);});
- });
-}
+if("serviceWorker" in navigator && window.isSecureContext){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(err=>console.warn("PWA:",err)));}
 </script>
 </head>
 
@@ -4230,6 +4235,114 @@ window.go=go;
 renderDashboard();
 renderTracks();
 
+</script>
+<script data-lv-cloud-inline="concursoria">/* Lima Virtual • nuvem de estudos PWA • autenticação Supabase e RLS.
+   Apenas a chave pública está neste arquivo. NÃO inserir chave secret/service_role.
+   Sem bibliotecas externas. Uso nas três aplicações educativas.
+*/
+(()=>{
+'use strict';
+if(window.__LV_CLOUD_INSTALLED__)return;
+window.__LV_CLOUD_INSTALLED__=true;
+const SB='https://piagfpnjiwpngbikkkfp.supabase.co';
+const PUB='sb_publishable_G7GV4Yox1KkbjZtjnYxFAQ_kzo9V05a';
+const choices={
+  concursoria:{title:'ConcursorIA Tech',id:'concursoria',guardian:false},
+  chat_matematica:{title:'Chat com Matemática',id:'chat_matematica',guardian:true},
+  professorzao:{title:'ProfessorZão',id:'professorzao',guardian:true}
+};
+const appName=document.documentElement.dataset.lvCloudApp;
+const cfg=choices[appName];if(!cfg)return;
+const ident='lv-cloud-auth-'+cfg.id;
+const keys={
+ concursoria:['ct_answers','ct_notes','ct_lesson_done','ct_flash_progress','ct_flash_favs','ct_tracks','ct_minutes','ct_light','ct_video_progress','ct_a11y','ct_verticalizer_v42'],
+ chat_matematica:['ccm.grade','ccm.completed','ccm.gameScore','ccm.streak','ccm.competency','ccm.learners','ccm.activeLearnerId','ccm.mapConfidence','ccm.reviewMeta','ccm.activity','ccm.dailyGoal','ccm.careerProfile','ccm.accessStats'],
+ professorzao:['avia2.stats','avia2.history','avia3.reviews','avia6.discoveries','avia6.childMode','avia62.userMode','avia62.lastView','avia62.lastTopic','avia62.largeText','avia62.readingSpace','avia62.reduceMotion']
+}[cfg.id];
+let session=null, uid=null, revision=null, auto=false, loading=false, busy=false, online=navigator.onLine, timer=0, firstBoot=true;
+function el(id){return document.getElementById(id)}
+function msg(s,fail=false){const n=el('lv-cloud-message');if(n){n.textContent=s;n.style.color=fail?'#dc2626':'#2563eb'}console[fail?'warn':'info']('[LimaVirtualCloud]',s)}
+function headers(token=false,extra={}){return {'apikey':PUB,'Content-Type':'application/json',...(token?{'Authorization':'Bearer '+session.access_token}:{}),...extra}}
+async function req(path,{method='GET',body=null,auth=true,extra={}}={}){
+ if(auth){await refreshIfNeeded();if(!session?.access_token)throw Error('Faça login para usar a nuvem.');}
+ const response=await fetch(SB+path,{method,headers:headers(auth,extra),body:body===null?null:JSON.stringify(body),cache:'no-store'});
+ const raw=await response.text();let data;try{data=raw?JSON.parse(raw):null}catch{data=null}
+ if(!response.ok)throw Error(String(data?.msg||data?.error_description||data?.message||data?.error||'Falha de rede '+response.status).slice(0,220));return data;
+}
+function capture(){const data={};for(const key of keys){const v=localStorage.getItem(key);if(v!==null&&v.length<=350000)data[key]=v;}return data}
+function captureSize(d){return Object.keys(d).length}
+function snapshotSize(d){return new Blob([JSON.stringify(d)]).size}
+function apply(d){if(!d||typeof d!=='object'||Array.isArray(d))throw Error('Dados remotos inválidos.');const names=Object.keys(d);if(names.some(k=>!keys.includes(k)||typeof d[k]!=='string'||d[k].length>350000))throw Error('Dados remotos fora do formato permitido.');const current=capture();try{for(const k of keys){if(Object.hasOwn(d,k))localStorage.setItem(k,d[k]);else localStorage.removeItem(k)}}catch(e){for(const k of keys){if(Object.hasOwn(current,k))localStorage.setItem(k,current[k]);else localStorage.removeItem(k)}throw e}}
+function storeSession(){try{if(session)localStorage.setItem(ident,JSON.stringify(session));else localStorage.removeItem(ident)}catch{}}
+async function refreshIfNeeded(){if(!session?.refresh_token)return;if(Number(session.expires_at||0)*1000>Date.now()+120000)return;
+ const data=await req('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:session.refresh_token},auth:false});
+ if(!data?.access_token)throw Error('Sessão expirada. Entre novamente.');session=data;storeSession();}
+function syncUI(){const label=el('lv-cloud-account');if(label)label.textContent=uid?'Conectado: '+(session?.user?.email||'conta autenticada'):'Não conectado';
+ for(const id of ['lv-cloud-signin','lv-cloud-signup']){if(el(id))el(id).hidden=!!uid}
+ for(const id of ['lv-cloud-logout','lv-cloud-push','lv-cloud-pull','lv-cloud-status']){if(el(id))el(id).hidden=!uid}
+ if(el('lv-cloud-auto'))el('lv-cloud-auto').checked=auto;
+ if(el('lv-cloud-status'))el('lv-cloud-status').textContent=auto?'Sincronização habilitada':'Sincronização pausada';
+}
+async function loadRemote(){const rows=await req('/rest/v1/pwa_learning_snapshots?app_id=eq.'+encodeURIComponent(cfg.id)+'&user_id=eq.'+encodeURIComponent(uid)+'&select=data,revision,updated_at&limit=1');return rows?.[0]||null;}
+async function sendRemote(manual=false){if(!uid||!session||busy||!online)return;if(!auto&&!manual)return;busy=true;
+ try{const data=capture();if(snapshotSize(data)>950000)throw Error('Dados acima de 950 KB: exporte o backup para reduzir o tamanho.');
+  if(revision===null){const created=await req('/rest/v1/pwa_learning_snapshots?select=revision',{method:'POST',body:{user_id:uid,app_id:cfg.id,data},extra:{Prefer:'return=representation'}});revision=created?.[0]?.revision??1;}
+  else{const updated=await req('/rest/v1/pwa_learning_snapshots?user_id=eq.'+encodeURIComponent(uid)+'&app_id=eq.'+encodeURIComponent(cfg.id)+'&revision=eq.'+revision+'&select=revision',{method:'PATCH',body:{data},extra:{Prefer:'return=representation'}});
+   if(!Array.isArray(updated)||updated.length===0){auto=false;throw Error('Outra sessão alterou os dados; sincronização pausada para evitar perda. Recarregue os dados da nuvem antes de salvar novamente.')}
+   revision=updated[0].revision;}
+  msg('Dados salvos na nuvem com sucesso.');
+ }catch(e){auto=false;msg('Não foi possível sincronizar: '+e.message,true)}finally{busy=false;syncUI()}}
+function scheduleSync(){if(!auto||loading||!uid)return;clearTimeout(timer);timer=setTimeout(()=>sendRemote(false),2500)}
+const originalSet=Storage.prototype.setItem, originalRemove=Storage.prototype.removeItem;
+Storage.prototype.setItem=function(k,v){const r=originalSet.call(this,k,v);if(this===localStorage&&keys.includes(String(k)))scheduleSync();return r};
+Storage.prototype.removeItem=function(k){const r=originalRemove.call(this,k);if(this===localStorage&&keys.includes(String(k)))scheduleSync();return r};
+async function connectRemote(isSignIn=false){const remote=await loadRemote();revision=remote?.revision??null;
+ const local=capture();if(remote){
+  const same=JSON.stringify(Object.entries(local).sort())===JSON.stringify(Object.entries(remote.data||{}).sort());
+  if(!isSignIn){
+   // Never discard offline/local changes just because a session resumed.
+   // The user must choose restore or save if the two copies differ.
+   if(!same){auto=false;msg('Progresso local e da nuvem diferentes. Faça backup e escolha Restaurar da nuvem ou Salvar na nuvem; nenhuma cópia será apagada automaticamente.');syncUI();return;}
+   auto=true;sessionStorage.setItem('lv-cloud-loaded-'+cfg.id,uid);msg('Progresso já sincronizado.');syncUI();return;
+  }
+  if(!same&&!confirm('Há progresso salvo no Supabase para este aplicativo. Deseja restaurá-lo neste aparelho? Os dados atuais deste aplicativo serão substituídos.')){auto=false;msg('Dados remotos encontrados; sincronização pausada. Use Restaurar ou Salvar manualmente.');syncUI();return;}
+  if(!same){loading=true;try{apply(remote.data)}finally{loading=false;}}
+  auto=true;sessionStorage.setItem('lv-cloud-loaded-'+cfg.id,uid);msg(same?'Progresso já atualizado.':'Progresso restaurado. Reabrindo o aplicativo…');if(!same)setTimeout(()=>location.reload(),500);syncUI();return;
+ }else{
+  if(captureSize(local)>0 && isSignIn){if(!confirm('Esta conta ainda não tem progresso na nuvem. Deseja enviar os dados deste aparelho e iniciar a sincronização?')){auto=false;msg('Login concluído. Progresso local preservado; sincronização pausada.');syncUI();return;}}
+  auto=true;if(captureSize(local)>0)await sendRemote(true);msg('Conta pronta. Progresso será salvo automaticamente.');}
+ syncUI();}
+async function signIn(isSignup){const email=el('lv-cloud-email')?.value.trim().toLowerCase(),password=el('lv-cloud-password')?.value||'';
+ if(!email||!/^\S+@\S+\.\S+$/.test(email)||password.length<6){msg('Informe e-mail válido e senha de pelo menos 6 caracteres.',true);return}
+ if(isSignup&&cfg.guardian&&!el('lv-cloud-guardian')?.checked){msg('O cadastro deve ser feito por um responsável adulto.',true);return;}
+ const button=el(isSignup?'lv-cloud-signup':'lv-cloud-signin');button.disabled=true;
+ try{
+  const path=isSignup?'/auth/v1/signup?redirect_to='+encodeURIComponent(location.origin+location.pathname):'/auth/v1/token?grant_type=password';
+  const data=await req(path,{method:'POST',auth:false,body:{email,password}});
+  if(!data?.access_token){msg('Cadastro recebido. Confirme o e-mail enviado pelo Supabase e depois entre com sua senha.');return}
+  session=data;storeSession();const user=await req('/auth/v1/user');uid=user.id;session.user=user;storeSession();firstBoot=true;syncUI();await connectRemote(true);
+ }catch(e){msg('Falha no acesso: '+e.message,true)}finally{button.disabled=false;el('lv-cloud-password').value='';}
+}
+async function start(){if(!localStorage.getItem(ident))return;try{session=JSON.parse(localStorage.getItem(ident));if(!session?.access_token)return;const user=await req('/auth/v1/user');uid=user.id;session.user=user;storeSession();syncUI();firstBoot=false;await connectRemote(false);}catch(e){session=null;uid=null;auto=false;storeSession();syncUI();msg('Sessão não recuperada: faça login novamente.',true)}}
+async function logout(){if(!uid)return;if(!auto||!online){msg('Há dados sem sincronização confirmada. Use Baixar backup e resolva o conflito/offline antes de sair.',true);return}await sendRemote(true);if(!auto){msg('Falha ao salvar o progresso. Faça backup antes de sair.',true);return;}
+ if(!confirm('Sair da conta? Os dados de estudo locais deste aplicativo serão limpos deste navegador depois da sincronização, mas continuarão no Supabase.'))return;
+ try{await req('/auth/v1/logout',{method:'POST'});}catch{};auto=false;loading=true;for(const key of keys)localStorage.removeItem(key);loading=false;
+ localStorage.removeItem(ident);session=null;uid=null;revision=null;sessionStorage.removeItem('lv-cloud-loaded-'+cfg.id);location.reload();}
+async function restoreManual(){if(!uid)return;if(!confirm('Restaurar os dados do Supabase e substituir o progresso atual neste aparelho?'))return;
+ try{const remote=await loadRemote();if(!remote){msg('Ainda não há progresso salvo na nuvem.',true);return}revision=remote.revision;loading=true;try{apply(remote.data)}finally{loading=false}auto=true;sessionStorage.setItem('lv-cloud-loaded-'+cfg.id,uid);location.reload();}catch(e){msg('Falha ao restaurar: '+e.message,true)}}
+async function saveManual(){if(!uid)return;if(revision===null && !confirm('Enviar os dados locais deste aplicativo para a sua conta?'))return;await sendRemote(true);}
+function downloadBackup(){const data=capture();const blob=new Blob([JSON.stringify({app:cfg.id,createdAt:new Date().toISOString(),data},null,2)],{type:'application/json'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=cfg.id+'-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),600);msg('Backup local gerado para guardar com segurança.');}
+function initUI(){const style=document.createElement('style');style.textContent=`#lv-cloud-open{position:fixed;right:14px;bottom:16px;z-index:2147483600;max-width:calc(100vw - 28px);padding:12px 15px;border-radius:16px;border:2px solid #b4e1fc;background:#075985;color:white;font:700 15px/1.3 system-ui,sans-serif;box-shadow:0 8px 30px #0006;cursor:pointer}#lv-cloud-dialog{position:fixed;inset:0;z-index:2147483601;overflow:auto;background:#000b;padding:5vh 12px;display:none;align-items:flex-start;justify-content:center}#lv-cloud-dialog.lv-active{display:flex}#lv-cloud-panel{color:#182436!important;background:#fff!important;font:15px/1.5 system-ui,sans-serif;width:min(100%,480px);border-radius:22px;padding:21px;box-shadow:0 20px 70px #0007}#lv-cloud-panel *{box-sizing:border-box}#lv-cloud-panel input[type=email],#lv-cloud-panel input[type=password]{display:block;width:100%;border:1px solid #cbd5e1;border-radius:11px;padding:12px;font-size:16px;margin:6px 0 12px;background:white;color:#182436}#lv-cloud-panel button{font:600 14px/1.3 system-ui,sans-serif;padding:10px 13px;border-radius:11px;border:1px solid #96bacf;color:#082944;background:#f3f9ff;cursor:pointer}#lv-cloud-panel button:disabled{opacity:.6}#lv-cloud-panel button.lv-main{background:#075985;color:#fff}#lv-cloud-panel [hidden]{display:none!important}#lv-cloud-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}#lv-cloud-message{font-size:13px;min-height:28px;margin:12px 0}#lv-cloud-panel p{font-size:13px;margin:9px 0}#lv-cloud-panel label{font-size:14px}`;document.head.appendChild(style);
+ const b=document.createElement('button');b.id='lv-cloud-open';b.type='button';b.textContent='🔐 Login e nuvem';b.addEventListener('click',()=>el('lv-cloud-dialog').classList.add('lv-active'));document.body.appendChild(b);
+ const modal=document.createElement('div');modal.id='lv-cloud-dialog';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-label','Minha conta e progresso na nuvem');modal.innerHTML=`<section id="lv-cloud-panel"><div style="display:flex;gap:8px;justify-content:space-between;align-items:center"><strong>🔐 ${cfg.title} — Minha conta</strong><button type="button" id="lv-cloud-close" aria-label="Fechar">✕</button></div><p>Um mesmo e-mail e senha no Supabase para os três aplicativos; progresso separado por aplicativo e por usuário.</p><p id="lv-cloud-account">Não conectado</p><label for="lv-cloud-email">E-mail do titular da conta</label><input id="lv-cloud-email" type="email" autocomplete="username" placeholder="seu@email.com"><label for="lv-cloud-password">Senha</label><input id="lv-cloud-password" type="password" autocomplete="current-password" minlength="6" placeholder="Sua senha">${cfg.guardian?'<label><input type="checkbox" id="lv-cloud-guardian"> Sou responsável adulto pela conta e pelos dados de aprendizagem.</label>':''}<div id="lv-cloud-buttons"><button id="lv-cloud-signin" class="lv-main" type="button">Entrar</button><button id="lv-cloud-signup" type="button">Criar conta</button><button id="lv-cloud-push" type="button" hidden>Salvar na nuvem</button><button id="lv-cloud-pull" type="button" hidden>Restaurar da nuvem</button><button id="lv-cloud-logout" type="button" hidden>Sair da conta</button><button id="lv-cloud-backup" type="button">Baixar backup</button>${cfg.id==='concursoria'?'<button id="lv-cloud-changeplan" type="button">Trocar plano antigo</button>':''}</div><p id="lv-cloud-status" hidden>Sincronização pausada</p><p id="lv-cloud-message" role="status" aria-live="polite"></p><p>Não informe senhas de outros serviços. Seus dados são salvos em servidor com regras de acesso por usuário. Offline: as alterações ficam no aparelho até reconectar.</p>${cfg.id==='concursoria'?'<p style="border-top:1px solid #e4edf4;padding-top:10px">O plano Básico de 10.000 questões vem da autorização local anterior. Entrar com e-mail e senha <b>não concede plano Premium</b>. Use “Trocar plano antigo” para voltar à seleção anterior, sem apagar seu progresso.</p>':''}</section>`;
+ document.body.appendChild(modal);
+ el('lv-cloud-close').onclick=()=>modal.classList.remove('lv-active');modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('lv-active')});
+ el('lv-cloud-signin').onclick=()=>signIn(false);el('lv-cloud-signup').onclick=()=>signIn(true);el('lv-cloud-push').onclick=saveManual;el('lv-cloud-pull').onclick=restoreManual;el('lv-cloud-logout').onclick=logout;el('lv-cloud-backup').onclick=downloadBackup;
+ if(cfg.id==='concursoria')el('lv-cloud-changeplan').onclick=()=>{if(!confirm('Encerrar apenas o plano local atualmente memorizado? O progresso e o login Supabase serão preservados.'))return;localStorage.removeItem('ct_v40_access');location.reload()};
+ addEventListener('online',()=>{online=true;scheduleSync()});addEventListener('offline',()=>{online=false;msg('Sem internet: alterações permanecem neste aparelho.')});addEventListener('pagehide',()=>{if(auto&&uid){clearTimeout(timer);/* envio final exige conexão; as alterações continuam em localStorage */}});
+ syncUI();start();}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initUI,{once:true});else initUI();
+})();
 </script>
 </body>
 </html>
